@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "AfiyaRef",
+    "slug": "afiyaref",
+    "version": "0.1.0",
+    "extra": {
+      "apiUrl": "http://192.168.1.198:3005"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        { "locationAlwaysAndWhenInUsePermission": "AfiyaRef needs your location to find nearby hospitals." }
+      ]
+    ]
+  }
+}

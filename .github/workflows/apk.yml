@@ -1,0 +1,106 @@
+# Builds the AfiyaRef Android APK and bundles it as a CI artifact.
+# On version tags (v*), attaches the APK to a GitHub Release.
+#
+# Toolchain mirrors local dev: Flutter 3.44.8, Java 21, Android 36 + NDK 28.2.
+# Two-pass build: pass 1 generates build/flutter, then ci_patch_manifest.py
+# re-applies our manifest edits (cleartext HTTP + location permissions) which
+# `flet build` would otherwise drop on a fresh checkout; pass 2 is incremental.
+
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['flet-app/**', '.github/workflows/apk.yml']
+    tags: ['v*']
+  pull_request:
+    paths: ['flet-app/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flet-app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          cache: true
+
+      - name: Install Android packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;4.0.2"
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('flet-app/requirements.txt') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Build APK (pass 1 — generates Flutter project)
+        run: yes | flet build apk --project afiyaref --org com.afiyaref
+          --description "AfiyaRef Health Platform"
+          --exclude test_nav_logic.py --exclude smoke.py
+          --exclude construct_test.py --exclude web.py
+
+      - name: Re-apply manifest patches
+        run: python3 ci_patch_manifest.py
+
+      - name: Build APK (pass 2 — incremental, with patches)
+        run: yes | flet build apk --project afiyaref --org com.afiyaref
+          --description "AfiyaRef Health Platform"
+          --exclude test_nav_logic.py --exclude smoke.py
+          --exclude construct_test.py --exclude web.py
+
+      - name: Verify APK
+        run: |
+          test -f build/apk/afiyaref.apk
+          apksigner verify build/apk/afiyaref.apk
+          aapt dump permissions build/apk/afiyaref.apk | grep -q ACCESS_FINE_LOCATION
+          aapt dump xmltree build/apk/afiyaref.apk AndroidManifest.xml | grep -q usesCleartextTraffic
+          ls -la build/apk/afiyaref.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: afiyaref-apk
+          path: flet-app/build/apk/afiyaref.apk
+          retention-days: 30
+
+  release:
+    needs: build-apk
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: afiyaref-apk
+          path: dist-apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist-apk/afiyaref.apk
+          generate_release_notes: true

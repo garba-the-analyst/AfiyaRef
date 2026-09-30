@@ -1,0 +1,5 @@
+flet==1.0.1
+flet-cli==1.0.1
+flet-map==1.0.1
+flet-geolocator==1.0.1
+httpx==0.27.2

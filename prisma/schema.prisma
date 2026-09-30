@@ -1,0 +1,133 @@
+// AfiyaRef Prisma schema — PostgreSQL + PostGIS
+// PostGIS geometry is managed via raw SQL (see postgis-init.sql).
+// We store lat/lng as Floats for Prisma-level access and mirror them
+// into a `location geography(Point,4326)` column via trigger.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum FacilityType {
+  HOSPITAL
+  LAB
+  PHARMACY
+  CLINIC
+}
+
+enum BookingType {
+  DOCTOR_APPOINTMENT
+  LAB_TEST
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum TransferStatus {
+  NOTIFIED
+  ACKNOWLEDGED
+  REJECTED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  phoneNumber      String    @unique @map("phone_number")
+  passwordHash     String    @map("password_hash")
+  fullName         String    @map("full_name")
+  dob              DateTime?
+  gender           Gender?
+  insuranceProvider String?  @map("insurance_provider")
+  nhiaPolicyNumber String?   @unique @map("nhia_policy_number")
+  homeHospitalId   String?   @map("home_hospital_id")
+  homeHospital     Facility? @relation("HomeHospital", fields: [homeHospitalId], references: [id])
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  healthProfile HealthProfile?
+  bookings      Booking[]
+  transfers     CrossFacilityTransfer[] @relation("PatientTransfers")
+
+  @@map("users")
+}
+
+model HealthProfile {
+  userId                String   @id @map("user_id")
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bloodGroup            String?  @map("blood_group")
+  genotype              String?
+  allergies             String[] @default([])
+  chronicConditions     String[] @map("chronic_conditions") @default([])
+  emergencyContactPhone String?  @map("emergency_contact_phone")
+  activePrescriptions   Json?    @map("active_prescriptions")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("health_profiles")
+}
+
+model Facility {
+  id             String       @id @default(uuid())
+  name           String
+  address        String?
+  phoneNumber    String?      @map("phone_number")
+  facilityType   FacilityType @default(HOSPITAL) @map("facility_type")
+  latitude       Float
+  longitude      Float
+  servicesOffered String[]    @map("services_offered") @default([])
+  is247          Boolean      @default(false) @map("is_24_7")
+  acceptsNhia    Boolean      @default(true) @map("accepts_nhia")
+  isEmergencyReady Boolean    @default(false) @map("is_emergency_ready")
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  homePatients User[] @relation("HomeHospital")
+  bookings     Booking[]
+  treatingTransfers CrossFacilityTransfer[] @relation("TreatingFacility")
+  homeTransfers     CrossFacilityTransfer[] @relation("HomeFacility")
+
+  @@map("facilities")
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  userId       String        @map("user_id")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facilityId   String        @map("facility_id")
+  facility     Facility      @relation(fields: [facilityId], references: [id])
+  bookingType  BookingType   @map("booking_type")
+  scheduledTime DateTime     @map("scheduled_time")
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@map("bookings")
+}
+
+model CrossFacilityTransfer {
+  id                String         @id @default(uuid())
+  userId            String         @map("user_id")
+  user              User           @relation("PatientTransfers", fields: [userId], references: [id], onDelete: Cascade)
+  treatingFacilityId String        @map("treating_facility_id")
+  treatingFacility  Facility       @relation("TreatingFacility", fields: [treatingFacilityId], references: [id])
+  homeFacilityId    String?        @map("home_facility_id")
+  homeFacility      Facility?      @relation("HomeFacility", fields: [homeFacilityId], references: [id])
+  nhiaNumberUsed    String?        @map("nhia_number_used")
+  status            TransferStatus @default(NOTIFIED)
+  payload           Json?
+  createdAt         DateTime       @default(now()) @map("timestamp")
+
+  @@map("cross_facility_transfers")
+}

@@ -1,0 +1,7 @@
+# Replace api.afiyaref.ng with your domain. Caddy provisions TLS automatically.
+api.afiyaref.ng {
+	reverse_proxy api:3000
+}
+
+# Optional: serve the facility portal under the same domain (/portal/* is
+# already served by the API, so no extra rule needed).
