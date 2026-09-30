@@ -73,8 +73,10 @@ jobs:
       - name: Install Python deps
         run: pip install -r requirements.txt
 
+      # NOTE: finite printf input, not `yes |`: under the runner's pipefail,
+      # yes dies of SIGPIPE after a successful build and would fail the step.
       - name: Build APK (pass 1 — generates Flutter project)
-        run: yes | flet build apk --project afiyaref --org com.afiyaref
+        run: printf 'y\n%.0s' {1..20} | flet build apk --project afiyaref --org com.afiyaref
           --description "AfiyaRef Health Platform"
           --exclude test_nav_logic.py --exclude smoke.py
           --exclude construct_test.py --exclude web.py
@@ -83,7 +85,7 @@ jobs:
         run: python3 ci_patch_manifest.py
 
       - name: Build APK (pass 2 — incremental, with patches)
-        run: yes | flet build apk --project afiyaref --org com.afiyaref
+        run: printf 'y\n%.0s' {1..20} | flet build apk --project afiyaref --org com.afiyaref
           --description "AfiyaRef Health Platform"
           --exclude test_nav_logic.py --exclude smoke.py
           --exclude construct_test.py --exclude web.py
