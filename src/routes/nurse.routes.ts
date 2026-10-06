@@ -1,17 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { askNurseTiti, ChatTurn, isLive, isPotentialEmergency } from '../services/nurseTiti.service';
+import { askNurseTiti, ChatTurn, isLive, liveModel, isPotentialEmergency } from '../services/nurseTiti.service';
 import { searchFacilities } from '../services/facility.service';
 import { redis } from '../lib/redis';
 import { AuthRequest } from '../middleware/auth';
-import { env } from '../config/env';
 
 export const nurseRouter = Router();
 
 const histKey = (userId: string) => `nurse_hist:${userId}`;
 
 export function nurseStatusHandler(_req: Request, res: Response) {
-  res.json({ live: isLive(), model: isLive() ? env.openaiModel : null });
+  res.json({ live: isLive(), model: liveModel() });
 }
 
 // GET /api/nurse/status — lets the app show Online/Offline badge

@@ -11,22 +11,46 @@ Keep answers concise for WhatsApp (under 600 characters when possible).`;
 const EMERGENCY_KEYWORDS = [
   'chest pain', 'difficulty breathing', 'cannot breathe', "can't breathe",
   'severe bleeding', 'unconscious', 'stroke', 'seizure', 'labour', 'overdose',
-  'heart attack', 'bleeding heavily', 'not breathing', 'poison',
+  'heart attack', 'bleeding heavily', 'bleeding a lot', 'not breathing', 'poison',
 ];
 
 export type ChatRole = 'user' | 'assistant';
 export interface ChatTurn { role: ChatRole; content: string; }
 
-let client: OpenAI | null = null;
-function getClient(): OpenAI | null {
-  if (!env.openaiApiKey || env.openaiApiKey.startsWith('sk-...')) return null;
-  if (!client) client = new OpenAI({ apiKey: env.openaiApiKey, timeout: 20000, maxRetries: 0 });
-  return client;
+export type LlmProvider = 'openai' | 'ollama';
+
+export function llmProvider(): LlmProvider {
+  if (process.env.LLM_PROVIDER === 'openai' || process.env.LLM_PROVIDER === 'ollama') {
+    return process.env.LLM_PROVIDER;
+  }
+  return env.ollamaApiKey ? 'ollama' : 'openai';
 }
 
-/** True when a real OpenAI key is configured (live mode). */
+let openaiClient: OpenAI | null = null;
+function getOpenAI(): OpenAI | null {
+  if (!env.openaiApiKey || env.openaiApiKey.startsWith('sk-...')) return null;
+  if (!openaiClient) openaiClient = new OpenAI({ apiKey: env.openaiApiKey, timeout: 20000, maxRetries: 0 });
+  return openaiClient;
+}
+
+/** True when any real LLM key is configured (live mode). */
 export function isLive(): boolean {
-  return getClient() !== null;
+  const p = llmProvider();
+  return p === 'ollama' ? !!env.ollamaApiKey : getOpenAI() !== null;
+}
+
+export function liveModel(): string | null {
+  if (!isLive()) return null;
+  return llmProvider() === 'ollama' ? env.ollamaModel : env.openaiModel;
+}
+
+export const REQUIRED_DISCLAIMER =
+  'I am an AI first aid assistant. If this is a life-threatening emergency, please visit the nearest hospital immediately.';
+
+/** Guarantee the safety disclaimer is present no matter how the model phrases it. */
+export function ensureDisclaimer(reply: string): string {
+  if (/life-threatening emergency/i.test(reply)) return reply;
+  return `${reply.trim()}\n\n${REQUIRED_DISCLAIMER}`;
 }
 
 export function isPotentialEmergency(text: string): boolean {
@@ -36,36 +60,73 @@ export function isPotentialEmergency(text: string): boolean {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+async function askOpenAI(message: string, history: ChatTurn[]): Promise<string | null> {
+  const c = getOpenAI();
+  if (!c) return null;
+  const res = await c.chat.completions.create({
+    model: env.openaiModel,
+    temperature: 0.3,
+    max_tokens: 500,
+    messages: [
+      { role: 'system', content: NURSE_TITI_SYSTEM_PROMPT },
+      ...history.slice(-8),
+      { role: 'user', content: message },
+    ],
+  });
+  return res.choices[0]?.message?.content?.trim() ?? null;
+}
+
+async function askOllama(message: string, history: ChatTurn[]): Promise<string | null> {
+  if (!env.ollamaApiKey) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 45000);
+  try {
+    const res = await fetch(`${env.ollamaBaseUrl}/api/chat`, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        Authorization: `Bearer ${env.ollamaApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: env.ollamaModel,
+        stream: false,
+        options: { temperature: 0.3, num_predict: 500 },
+        messages: [
+          { role: 'system', content: NURSE_TITI_SYSTEM_PROMPT },
+          ...history.slice(-8),
+          { role: 'user', content: message },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`Ollama HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = (await res.json()) as { message?: { content?: string }; error?: string };
+    if (data.error) throw new Error(`Ollama: ${data.error}`);
+    return data.message?.content?.trim() ?? null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function askNurseTiti(
   userMessage: string,
   history: ChatTurn[] = [],
 ): Promise<{ reply: string; offline: boolean }> {
-  const c = getClient();
-  if (!c) return { reply: fallbackReply(userMessage), offline: true };
-
-  let lastErr: unknown = null;
+  const provider = llmProvider();
+  const ask = provider === 'ollama' ? askOllama : askOpenAI;
+  let lastErr: unknown = new Error('no LLM key configured');
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await c.chat.completions.create({
-        model: env.openaiModel,
-        temperature: 0.3,
-        max_tokens: 500,
-        messages: [
-          { role: 'system', content: NURSE_TITI_SYSTEM_PROMPT },
-          ...history.slice(-8),
-          { role: 'user', content: userMessage },
-        ],
-      });
-      const text = res.choices[0]?.message?.content?.trim();
-      if (text) return { reply: text, offline: false };
+      const text = await ask(userMessage, history);
+      if (text) return { reply: ensureDisclaimer(text), offline: false };
       throw new Error('Empty completion');
     } catch (e) {
       lastErr = e;
-      console.error(`[nurse-titi] attempt ${attempt + 1} failed:`, (e as Error).message);
+      console.error(`[nurse-titi:${provider}] attempt ${attempt + 1} failed:`, (e as Error).message);
       await sleep(500 * 2 ** attempt);
     }
   }
-  console.error('[nurse-titi] all retries failed:', lastErr);
+  console.error('[nurse-titi] all retries failed:', (lastErr as Error)?.message ?? lastErr);
   return { reply: fallbackReply(userMessage), offline: true };
 }
 
