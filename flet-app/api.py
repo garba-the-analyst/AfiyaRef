@@ -30,6 +30,7 @@ class ApiError(Exception):
 class ApiClient:
     def __init__(self, base_url: str | None = None, timeout: float = 20.0):
         self.base_url = (base_url or resolve_base()).rstrip("/")
+        self._timeout = timeout
         self.client = httpx.Client(base_url=self.base_url, timeout=timeout)
         self.token: str | None = None
 
@@ -43,12 +44,26 @@ class ApiClient:
         if auth and not self.token:
             raise ApiError("Not logged in")
         try:
-            r = self.client.request(method, path, json=body, headers=self._headers())
+            return self._do(method, path, body)
         except Exception:
-            raise ApiError(
-                f"Cannot reach server at {self.base_url}. "
-                "Start the backend: cd ~/Desktop/Projects/AfiyaRef && node dist/index.js"
-            )
+            pass
+        # First attempt failed: backend may have started, moved, or switched
+        # networks since launch — re-resolve and retry once before giving up.
+        fresh = resolve_base()
+        if fresh.rstrip("/") != self.base_url:
+            self.base_url = fresh.rstrip("/")
+            self.client = httpx.Client(base_url=self.base_url, timeout=self._timeout)
+            try:
+                return self._do(method, path, body)
+            except Exception:
+                pass
+        raise ApiError(
+            f"Cannot reach server at {self.base_url}. "
+            "Start the backend: cd ~/Desktop/Projects/AfiyaRef && node dist/index.js"
+        )
+
+    def _do(self, method: str, path: str, body: dict | None = None):
+        r = self.client.request(method, path, json=body, headers=self._headers())
         try:
             data = r.json()
         except ValueError:
