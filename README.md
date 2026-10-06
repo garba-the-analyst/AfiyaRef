@@ -8,7 +8,7 @@ Single backend + shared Postgres/PostGIS database serving both the **Mobile App*
 cp .env.example .env        # fill in secrets
 docker compose up -d        # postgres+postgis (:5434) + redis (:6380)
 npm install
-npx prisma migrate dev      # create tables
+npx prisma migrate deploy   # apply tables (never resets data)
 docker exec -i afiyaref-postgres psql -U afiyaref -d afiyaref < prisma/postgis-init.sql
 npm run db:import           # 18 real Lagos facilities
 npm run dev                 # http://localhost:3006
