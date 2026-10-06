@@ -42,7 +42,13 @@ class ApiClient:
     def _req(self, method: str, path: str, body: dict | None = None, auth: bool = True):
         if auth and not self.token:
             raise ApiError("Not logged in")
-        r = self.client.request(method, path, json=body, headers=self._headers())
+        try:
+            r = self.client.request(method, path, json=body, headers=self._headers())
+        except Exception:
+            raise ApiError(
+                f"Cannot reach server at {self.base_url}. "
+                "Start the backend: cd ~/Desktop/Projects/AfiyaRef && node dist/index.js"
+            )
         try:
             data = r.json()
         except ValueError:
