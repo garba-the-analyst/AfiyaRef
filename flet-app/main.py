@@ -312,8 +312,8 @@ def main(page: ft.Page):
             refresh_finder()
 
     # ---------- navigation ----------
-    nav_banner = ft.Text("", weight="bold", size=16)
-    nav_sub = ft.Text("")
+    nav_banner = ft.Text("", weight="bold", size=16, color="white")
+    nav_sub = ft.Text("", color="#dceaff")
     nav_view = ft.Column(expand=True)
 
     def show_nav():
@@ -411,7 +411,7 @@ def main(page: ft.Page):
             reply = r.get("reply", "")
             if r.get("emergency") and r.get("facilities"):
                 reply += "\n\nNearest emergency care: " + ", ".join(f["name"] for f in r["facilities"])
-            chat_list.controls.append(ft.Container(content=ft.Text(f"Nurse Titi: {reply}"),
+            chat_list.controls.append(ft.Container(content=ft.Text(f"Nurse Titi: {reply}", color="black"),
                                                    bgcolor="#eeeeee", border_radius=8, padding=8))
         except ApiError as ex:
             chat_list.controls.append(ft.Text(f"Error: {ex}", color="red"))

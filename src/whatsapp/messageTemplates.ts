@@ -11,6 +11,23 @@ Reply with a number:
 
 Type MENU anytime to return here.`;
 
+/** Minimalist menu: Nurse Titi + nearby finder only. */
+export const MAIN_MENU_MINI = `Welcome to *AfiyaRef* 🏥
+
+Reply with a number:
+1️⃣ Find nearby hospital (share location next)
+2️⃣ Talk to Nurse Titi (first aid help)
+
+Type MENU anytime to return here.`;
+
+export function mainMenu(): string {
+  return process.env.WHATSAPP_MODE === 'minimalist' ? MAIN_MENU_MINI : MAIN_MENU;
+}
+
+export function isMinimalist(): boolean {
+  return process.env.WHATSAPP_MODE === 'minimalist';
+}
+
 export async function findNearby(lat: number, lng: number, service?: string): Promise<FacilityResult[]> {
   return searchFacilities({ lat, lng, radiusKm: 15, service, limit: 3 });
 }

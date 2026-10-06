@@ -74,12 +74,28 @@ async function main() {
   await step('2 → enters Nurse Titi', text('2'), /Nurse Titi/);
   await step('nurse answers with disclaimer', text('Someone burned their hand, what do I do?'), /life[‐‑‒–—−-]threatening emergency/);
   await step('EXIT leaves Nurse Titi', text('EXIT'), /AfiyaRef/);
-  await step('3 → check-in format prompt', text('3'), /NHIA_NUMBER/);
-  await step(
-    'check-in creates transfer',
-    text('NHIA-TEST-001 | Reddington Hospital Lekki'),
-    /Tracking ID/,
-  );
+  // Detect deployed mode from the menu: full has 4 flows, minimalist redirects 3/4
+  const menuProbe = await (async () => {
+    const before = await outboxCount();
+    await send(text('hello'));
+    const start = Date.now();
+    while (Date.now() - start < 30000) {
+      if ((await outboxCount()) > before) break;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    return lastReply('text');
+  })();
+  if (/Inter-Hospital/.test(menuProbe)) {
+    await step('3 → check-in format prompt', text('3'), /NHIA_NUMBER/);
+    await step(
+      'check-in creates transfer',
+      text('NHIA-TEST-001 | Reddington Hospital Lekki'),
+      /Tracking ID/,
+    );
+  } else {
+    await step('mini: 3 redirects to finder', text('3'), /reply 1 and share your location/i);
+    await step('mini: 4 redirects to menu', text('4'), /AfiyaRef/);
+  }
 
   console.log(process.exitCode ? '\nSome steps FAILED' : '\nAll simulator steps passed ✅');
 }

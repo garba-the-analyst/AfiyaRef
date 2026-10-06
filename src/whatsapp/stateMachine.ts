@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { normalizePhone } from '../utils/phone';
 import { askNurseTiti } from '../services/nurseTiti.service';
 import { createTransfer } from '../services/transfer.service';
-import { MAIN_MENU, findNearby, formatNearby } from './messageTemplates';
+import { MAIN_MENU, mainMenu, isMinimalist, findNearby, formatNearby } from './messageTemplates';
 import { sendWhatsAppText, sendWhatsAppLocation } from './metaClient';
 
 export type WaState =
@@ -48,7 +48,7 @@ export async function handleIncoming(from: string, text: string, location?: { la
 
   if (/^menu$/i.test(msg)) {
     await setState(phone, 'IDLE');
-    await sendWhatsAppText(phone, MAIN_MENU);
+    await sendWhatsAppText(phone, mainMenu());
     return;
   }
 
@@ -71,7 +71,7 @@ export async function handleIncoming(from: string, text: string, location?: { la
   if (state === 'NURSE_TITI') {
     if (/^exit$/i.test(msg)) {
       await setState(phone, 'IDLE');
-      await sendWhatsAppText(phone, `Exited Nurse Titi. ${MAIN_MENU}`);
+      await sendWhatsAppText(phone, `Exited Nurse Titi. ${mainMenu()}`);
       return;
     }
     const rawHist = await redis.get(histKey(phone));
@@ -122,13 +122,21 @@ export async function handleIncoming(from: string, text: string, location?: { la
       await sendWhatsAppText(phone, '👩🏾‍⚕️ You are now talking to *Nurse Titi*. Describe the symptoms or first-aid need. Type EXIT when done.');
       break;
     case '3':
+      if (isMinimalist()) {
+        await sendWhatsAppText(phone, `For emergencies, reply 1 and share your location to find the nearest hospital right now.\n\n${mainMenu()}`);
+        break;
+      }
       await setState(phone, 'INTER_HOSPITAL_CHECKIN');
       await sendWhatsAppText(phone, '🚨 *Emergency Inter-Hospital Check-in*\nReply with:\n`NHIA_NUMBER | TREATING_HOSPITAL_NAME`\nWe will notify your home hospital & HMO and share your EHR snapshot.');
       break;
     case '4':
+      if (isMinimalist()) {
+        await sendWhatsAppText(phone, `Booking lives in the AfiyaRef app — but I can help right here:\n${mainMenu()}`);
+        break;
+      }
       await sendWhatsAppText(phone, '📅 To book, use the AfiyaRef mobile app or call the facility directly. Nearby search: reply 1 and share location. Type MENU.');
       break;
     default:
-      await sendWhatsAppText(phone, MAIN_MENU);
+      await sendWhatsAppText(phone, mainMenu());
   }
 }
