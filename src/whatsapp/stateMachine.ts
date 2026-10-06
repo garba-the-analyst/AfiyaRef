@@ -4,7 +4,7 @@ import { normalizePhone } from '../utils/phone';
 import { askNurseTiti } from '../services/nurseTiti.service';
 import { createTransfer } from '../services/transfer.service';
 import { MAIN_MENU, mainMenu, isMinimalist, findNearby, formatNearby } from './messageTemplates';
-import { sendWhatsAppText, sendWhatsAppLocation } from './metaClient';
+import { sendWhatsAppText, sendWhatsAppLocation } from './sender';
 
 export type WaState =
   | 'IDLE'

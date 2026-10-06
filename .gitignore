@@ -6,6 +6,8 @@ build/
 !.env.example
 *.log
 .DS_Store
+# Baileys WhatsApp session (private keys — never commit)
+baileys_auth/
 # Python / Flet
 __pycache__/
 *.py[cod]
