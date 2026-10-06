@@ -1,9 +1,12 @@
-"""Apply AfiyaRef Android manifest patches idempotently.
+"""Apply AfiyaRef build patches idempotently.
 
 `flet build` regenerates build/flutter from scratch on fresh clones, which drops
-our manual edits (cleartext HTTP for the dev/LAN backend + location permissions).
-Run this after the Flutter project exists and before/after `flet build apk` —
-it is safe to run multiple times.
+our manual edits. Run this after the Flutter project exists (and again after
+`flet build`, which preserves the project dir):
+
+1. AndroidManifest.xml: cleartext HTTP (dev/LAN backend) + location permissions.
+2. pubspec.yaml: force `jni: 1.1.0` override (fresh pub resolution pairs
+   jni_flutter-1.0.4+1 with an incompatible jni 1.0.0 and the build fails).
 
 Usage: python3 ci_patch_manifest.py [path/to/AndroidManifest.xml]
 """
@@ -36,6 +39,13 @@ def patch(path: Path) -> bool:
             changed = True
     if changed:
         path.write_text(text)
+    # keep the jni override compatible (see module docstring)
+    pubspec = path.parent.parent.parent.parent.parent / "pubspec.yaml"
+    if pubspec.exists():
+        pt = pubspec.read_text()
+        if "\n  jni: 1.0.0" in pt:
+            pubspec.write_text(pt.replace("\n  jni: 1.0.0", "\n  jni: 1.1.0"))
+            print("pubspec jni override bumped to 1.1.0")
     return changed
 
 
