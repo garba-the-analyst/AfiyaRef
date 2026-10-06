@@ -14,6 +14,12 @@ function payload(msg: object) {
 const text = (body: string) => payload({ type: 'text', text: { body } });
 const location = (lat: number, lng: number) => payload({ type: 'location', location: { latitude: lat, longitude: lng } });
 
+async function outboxCount(): Promise<number> {
+  const res = await fetch(`${BASE}/whatsapp/dev-outbox`);
+  const data = (await res.json()) as { messages: OutMsg[] };
+  return data.messages.filter((m) => m.to.includes(FROM.replace(/^\+/, '')) || FROM.includes(m.to.replace(/^\+/, ''))).length;
+}
+
 async function send(msg: object) {
   const res = await fetch(`${BASE}/whatsapp/webhook`, {
     method: 'POST',
@@ -21,7 +27,6 @@ async function send(msg: object) {
     body: JSON.stringify(msg),
   });
   if (res.status !== 200) throw new Error(`webhook returned ${res.status}`);
-  await new Promise((r) => setTimeout(r, 800)); // let async handler finish
 }
 
 async function lastReply(kind?: string): Promise<string> {
@@ -32,8 +37,16 @@ async function lastReply(kind?: string): Promise<string> {
   return filtered.length ? filtered[filtered.length - 1].body : '(no reply)';
 }
 
-async function step(label: string, msg: object, expect: RegExp) {
+async function step(label: string, msg: object, expect: RegExp, extra = 0) {
+  const before = await outboxCount();
   await send(msg);
+  // wait for this step's reply/replies (live LLM calls take seconds)
+  const want = 1 + extra;
+  const start = Date.now();
+  while (Date.now() - start < 90000) {
+    if ((await outboxCount()) >= before + want) break;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
   const reply = await lastReply('text');
   const ok = expect.test(reply);
   console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`);
@@ -47,7 +60,7 @@ async function main() {
 
   await step('MENU shows options', text('hello'), /AfiyaRef/);
   await step('1 → asks for location', text('1'), /share your location/i);
-  await step('location → top-3 hospitals', location(6.52, 3.37), /Lagos University Teaching Hospital/);
+  await step('location → top-3 hospitals', location(6.52, 3.37), /Lagos University Teaching Hospital/, 3);
   await step('location → in-chat map bubbles', location(6.52, 3.37), /./); // reply text (assert bubbles below)
   {
     const res = await fetch(`${BASE}/whatsapp/dev-outbox`);
@@ -59,7 +72,7 @@ async function main() {
     if (!ok) process.exitCode = 1;
   }
   await step('2 → enters Nurse Titi', text('2'), /Nurse Titi/);
-  await step('nurse answers with disclaimer', text('Someone burned their hand, what do I do?'), /life-threatening emergency/);
+  await step('nurse answers with disclaimer', text('Someone burned their hand, what do I do?'), /life[‐‑‒–—−-]threatening emergency/);
   await step('EXIT leaves Nurse Titi', text('EXIT'), /AfiyaRef/);
   await step('3 → check-in format prompt', text('3'), /NHIA_NUMBER/);
   await step(

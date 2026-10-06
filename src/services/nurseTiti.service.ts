@@ -47,9 +47,10 @@ export function liveModel(): string | null {
 export const REQUIRED_DISCLAIMER =
   'I am an AI first aid assistant. If this is a life-threatening emergency, please visit the nearest hospital immediately.';
 
-/** Guarantee the safety disclaimer is present no matter how the model phrases it. */
+/** Guarantee the safety disclaimer is present no matter how the model phrases it
+ * (models often use non-breaking/alternative hyphens in "life-threatening"). */
 export function ensureDisclaimer(reply: string): string {
-  if (/life-threatening emergency/i.test(reply)) return reply;
+  if (/life[‐‑‒–—−-]threatening emergency/i.test(reply)) return reply;
   return `${reply.trim()}\n\n${REQUIRED_DISCLAIMER}`;
 }
 

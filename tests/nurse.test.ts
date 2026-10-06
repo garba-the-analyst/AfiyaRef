@@ -16,7 +16,7 @@ describe('nurse titi', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ message: 'Someone burned their hand, what do I do?' });
     expect(res.status).toBe(200);
-    expect(res.body.reply).toMatch(/life-threatening emergency/);
+    expect(res.body.reply).toMatch(/life[‐‑‒–—−-]threatening emergency/);
   });
 
   it('flags emergencies and suggests facilities with coords', async () => {
