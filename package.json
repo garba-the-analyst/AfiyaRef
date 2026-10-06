@@ -14,7 +14,7 @@
     "seed": "tsx prisma/seed.ts",
     "db:import": "tsx prisma/import-facilities.ts",
     "whatsapp:sim": "tsx scripts/whatsapp-sim.ts",
-    "tunnel": "ngrok http 3005",
+    "tunnel": "ngrok http 3006",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

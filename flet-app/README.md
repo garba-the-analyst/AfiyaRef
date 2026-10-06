@@ -21,7 +21,7 @@ pip install -r requirements.txt
 python main.py            # desktop window; set AFIYA_API_URL to point at the backend
 ```
 
-Default API: auto-detected (`AFIYA_API_URL` → `localhost:3005` → LAN fallback, first healthy wins).
+Default API: auto-detected (`AFIYA_API_URL` → `localhost:3006` → LAN fallback, first healthy wins).
 
 ## Verify without a GUI
 
@@ -40,7 +40,7 @@ adb install -r build/apk/afiyaref.apk
 The APK requests GPS + internet permissions and allows cleartext HTTP so it can
 reach the dev backend over Wi-Fi. The app auto-detects the backend
 (`AFIYA_API_URL` → `localhost` → LAN); for a physical phone, put it on the same
-Wi-Fi and set `AFIYA_API_URL=http://<your-lan-ip>:3005` at build time if
+Wi-Fi and set `AFIYA_API_URL=http://<your-lan-ip>:3006` at build time if
 auto-detect fails (check yours with `ip route get 1.1.1.0`).
 
 Requirements: Flutter SDK + Android SDK (see https://flet.dev/docs/publish). Requires

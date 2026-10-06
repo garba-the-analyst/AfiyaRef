@@ -3,12 +3,12 @@ import os
 
 import httpx
 
-BASE_URL = os.environ.get("AFIYA_API_URL", "http://192.168.18.25:3005")
+BASE_URL = os.environ.get("AFIYA_API_URL", "http://192.168.18.25:3006")
 
 
 def resolve_base() -> str:
     """Pick the first healthy backend (env override → localhost → legacy LAN)."""
-    candidates = [BASE_URL, "http://localhost:3005"]
+    candidates = [BASE_URL, "http://localhost:3006"]
     seen = set()
     for base in candidates:
         if not base or base in seen:

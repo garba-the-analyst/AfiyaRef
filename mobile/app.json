@@ -4,7 +4,7 @@
     "slug": "afiyaref",
     "version": "0.1.0",
     "extra": {
-      "apiUrl": "http://192.168.1.198:3005"
+      "apiUrl": "http://192.168.1.198:3006"
     },
     "plugins": [
       [

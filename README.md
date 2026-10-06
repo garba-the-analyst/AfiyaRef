@@ -11,10 +11,10 @@ npm install
 npx prisma migrate dev      # create tables
 docker exec -i afiyaref-postgres psql -U afiyaref -d afiyaref < prisma/postgis-init.sql
 npm run db:import           # 18 real Lagos facilities
-npm run dev                 # http://localhost:3005
+npm run dev                 # http://localhost:3006
 ```
 
-> Ports: API `3005`, Postgres `5434`, Redis `6380` (host defaults `3000`/`5432`/`6379` were taken on this machine).
+> Ports: API `3006`, Postgres `5434`, Redis `6380` (host defaults `3000`/`5432`/`6379` were taken on this machine).
 
 ## Environment variables
 
@@ -51,7 +51,7 @@ npm run dev                 # http://localhost:3005
 - `GET|DELETE /api/admin/transfers/notifications` (admin key) — SMS dispatch log
 - `POST /api/facilities` (admin key) — create facility
 - `GET /whatsapp/webhook` — Meta verification; `POST /whatsapp/webhook` — message ingress (signature-verified when `WHATSAPP_APP_SECRET` set)
-- Facility portal UI: `http://localhost:3005/portal/portal.html` (paste admin key, ACK/reject with EHR snapshot view)
+- Facility portal UI: `http://localhost:3006/portal/portal.html` (paste admin key, ACK/reject with EHR snapshot view)
 
 ## Tests & hardening
 
@@ -89,7 +89,7 @@ npm run whatsapp:sim   # 8-step E2E through the real webhook; uses /whatsapp/dev
 
 - System prompt in `src/services/nurseTiti.service.ts`: empathetic triage + step-by-step first aid, mandatory disclaimer, no complex diagnosis, no controlled-medication prescriptions, emergency escalation.
 - Live mode: set a real `OPENAI_API_KEY` in `.env` and restart — `GET /api/nurse/status` flips to `{"live":true}`. 3 attempts with exponential backoff; falls back to offline guidance on failure.
-- Check status: `curl http://localhost:3005/api/nurse/status`.
+- Check status: `curl http://localhost:3006/api/nurse/status`.
 
 ## Facility data
 
@@ -100,7 +100,7 @@ npm run whatsapp:sim   # 8-step E2E through the real webhook; uses /whatsapp/dev
 
 ```bash
 cd mobile && npm install && npx expo start
-# Point API at your machine: app.json → extra.apiUrl (default http://192.168.1.198:3005; check yours with `ip route get 1.1.1.0`)
+# Point API at your machine: app.json → extra.apiUrl (default http://192.168.1.198:3006; check yours with `ip route get 1.1.1.0`)
 # Scan the QR with Expo Go on the same Wi-Fi.
 ```
 
@@ -118,7 +118,7 @@ python smoke.py                # live end-to-end (register→search→route→ch
 ```
 
 Auth, Finder + embedded OSM map, turn-by-turn navigation (banner/reroute/arrival; no voice in Flet),
-Nurse chat, bookings, EHR profile, NHIA check-in. API auto-detected (`AFIYA_API_URL` → `localhost:3005` → LAN).
+Nurse chat, bookings, EHR profile, NHIA check-in. API auto-detected (`AFIYA_API_URL` → `localhost:3006` → LAN).
 Android APK: `flet build apk` (needs Flutter + Android SDK — see `flet-app/README.md`).
 
 ## Deployment

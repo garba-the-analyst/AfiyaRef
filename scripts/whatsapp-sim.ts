@@ -1,7 +1,7 @@
 /* WhatsApp simulator: drives the full bot state machine through the real
  * webhook endpoint using Meta-shaped payloads. Requires the server running
  * with WHATSAPP_DRY_RUN=1. Usage: npm run whatsapp:sim */
-const BASE = process.env.SIM_BASE ?? 'http://localhost:3005';
+const BASE = process.env.SIM_BASE ?? 'http://localhost:3006';
 const FROM = process.env.SIM_FROM ?? '2348012345678';
 
 interface OutMsg { to: string; kind?: string; body: string; }

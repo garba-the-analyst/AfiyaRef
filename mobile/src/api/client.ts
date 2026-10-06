@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE: string =
   (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ??
-  'http://192.168.1.198:3005';
+  'http://192.168.1.198:3006';
 
 const TOKEN_KEY = 'afiyaref_token';
 
