@@ -21,10 +21,12 @@ function jidToPhone(jid: string): string {
   return normalizePhone(jid.split('@')[0].split(':')[0]);
 }
 
-/** Start the local Baileys session (QR pairing). Call once at boot when enabled. */
+/** Start the local Baileys session. Pairing code when WHATSAPP_PAIR_NUMBER is set, else QR. */
 export async function startBaileys(): Promise<void> {
   const { state, saveCreds } = await useMultiFileAuthState('./baileys_auth');
   const { version } = await fetchLatestBaileysVersion();
+  const pairNumber = (process.env.WHATSAPP_PAIR_NUMBER ?? '').replace(/\D/g, '');
+  let codeRequested = false;
 
   sock = makeWASocket({
     version,
@@ -33,15 +35,35 @@ export async function startBaileys(): Promise<void> {
       keys: makeCacheableSignalKeyStore(state.keys, undefined as never),
     },
     printQRInTerminal: false,
+    browser: ['AfiyaRef', 'Chrome', '1.0'],
   });
 
   sock.ev.on('creds.update', saveCreds);
 
+  const maybePairingCode = async () => {
+    if (codeRequested || !pairNumber || !sock || sock.authState.creds.registered) return;
+    codeRequested = true;
+    try {
+      // small delay: pairing works best right after the socket opens the handshake
+      await new Promise((r) => setTimeout(r, 3000));
+      if (!sock || sock.authState.creds.registered) return;
+      const code = await sock.requestPairingCode(pairNumber);
+      console.log(`\n📱 On +${pairNumber}: WhatsApp → Settings → Linked devices → Link a device → "Link with phone number instead" → enter:\n\n    ${code}\n`);
+    } catch (e) {
+      console.error('[baileys] pairing code failed (will show QR instead):', (e as Error).message);
+      codeRequested = false;
+    }
+  };
+
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
     if (qr) {
-      console.log('\n📱 Scan this QR with the bot WhatsApp number (Linked devices):\n');
-      qrcode.generate(qr, { small: true });
+      if (pairNumber && !sock?.authState.creds.registered) {
+        void maybePairingCode();
+      } else {
+        console.log('\n📱 Scan this QR with the bot WhatsApp number (Linked devices):\n');
+        qrcode.generate(qr, { small: true });
+      }
     }
     if (connection === 'open') {
       up = true;
