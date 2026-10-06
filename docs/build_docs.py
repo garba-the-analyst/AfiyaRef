@@ -1,4 +1,4 @@
-"""Build the SoloScan presentation pack: .docx (3 parts) + .pptx (pitch deck)."""
+"""Build the AfiyaRef presentation pack: .docx (3 parts) + .pptx (pitch deck)."""
 from pathlib import Path
 
 from docx import Document
@@ -17,10 +17,9 @@ P_ACCENT = PRGB(0x00, 0x66, 0xCC)
 
 PARTS = [
     ("PART 1 — INTRODUCTION", [
-        ("What SoloScan Is", [
-            "SoloScan is a unified digital health platform for Nigeria: one backend that powers a mobile app, a WhatsApp health assistant, and a facility web portal.",
-            "It combines five capabilities in a single system: nearby hospital finder, doctor and lab-test booking, an AI first-aid assistant (Nurse Titi), a pocket health record (EHR-Lite), and inter-hospital emergency transfers with NHIA insurance portability.",
-            "Engineering codename and repository: AfiyaRef. SoloScan is the product and go-to-market name used in this document.",
+        ("What AfiyaRef Is", [
+            "AfiyaRef is a unified digital health platform for Nigeria: one backend that powers a mobile app, a WhatsApp health assistant, and a facility web portal.",
+            "It serves patients, hospitals, laboratories, pharmacies, and health insurers (HMOs) from a single shared system.",
         ]),
         ("What It Does", [
             "Geo-Proximity Hospital Finder: finds the nearest verified facilities by real GPS or a shared WhatsApp location pin, filtered by service (ICU, X-Ray, Pediatrics, Emergency), 24/7 status, and NHIA acceptance.",
@@ -138,11 +137,11 @@ def build_docx(path: Path) -> None:
     style = doc.styles["Normal"]
     style.font.size = Pt(11)
 
-    title = doc.add_heading("SoloScan", level=0)
+    title = doc.add_heading("AfiyaRef", level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     sub = doc.add_paragraph("Unified Health Directory, Referral, Triage & Information Platform")
     sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    note = doc.add_paragraph("Presentation pack — engineering codename / repository: AfiyaRef")
+    note = doc.add_paragraph("Presentation pack — Parts 1–3: Introduction, Technical Details, Entrepreneurship & Future")
     note.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     for part_title, sections in PARTS:
@@ -172,10 +171,10 @@ def build_docx(path: Path) -> None:
 # ---------------------------------------------------------------- PPTX content
 
 SLIDES = [
-    ("title", "SoloScan", "One health platform for Nigeria — app, WhatsApp & hospitals, connected."),
-    ("agenda", "Today", ["1. Introduction — what SoloScan is", "2. Technical deep-dive — how it works", "3. Business & future — why it wins"]),
+    ("title", "AfiyaRef", "One health platform for Nigeria — app, WhatsApp & hospitals, connected."),
+    ("agenda", "Today", ["1. Introduction — what AfiyaRef is", "2. Technical deep-dive — how it works", "3. Business & future — why it wins"]),
     ("section", "Part 1 — Introduction", ""),
-    ("bullets", "What SoloScan Is", [
+    ("bullets", "What AfiyaRef Is", [
         "Unified health directory, referral, triage & information platform",
         "One backend → mobile app + WhatsApp assistant + facility portal",
         "One identity: your phone number works everywhere",
@@ -232,7 +231,7 @@ SLIDES = [
         "Data protection → NDPR-aligned, minimal data, encrypted transport",
         "Platform risk → dual WhatsApp transports + app-first experience",
     ]),
-    ("title", "Thank You", "SoloScan — care, connected. Seeking pilot hospitals, one HMO partner & pre-seed support."),
+    ("title", "Thank You", "AfiyaRef — care, connected. Seeking pilot hospitals, one HMO partner & pre-seed support."),
 ]
 
 
@@ -302,8 +301,8 @@ def build_pptx(path: Path) -> None:
 
 
 if __name__ == "__main__":
-    build_docx(OUT / "SoloScan-Presentation-Pack.docx")
-    build_pptx(OUT / "SoloScan-Pitch-Deck.pptx")
+    build_docx(OUT / "AfiyaRef-Presentation-Pack.docx")
+    build_pptx(OUT / "AfiyaRef-Pitch-Deck.pptx")
     print("docs built:")
-    print(" -", OUT / "SoloScan-Presentation-Pack.docx")
-    print(" -", OUT / "SoloScan-Pitch-Deck.pptx")
+    print(" -", OUT / "AfiyaRef-Presentation-Pack.docx")
+    print(" -", OUT / "AfiyaRef-Pitch-Deck.pptx")
