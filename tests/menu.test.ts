@@ -1,7 +1,10 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MAIN_MENU, MAIN_MENU_MINI, mainMenu, isMinimalist } from '../src/whatsapp/messageTemplates';
 
 describe('whatsapp menus', () => {
+  beforeEach(() => {
+    delete process.env.WHATSAPP_MODE;
+  });
   afterEach(() => {
     delete process.env.WHATSAPP_MODE;
   });
